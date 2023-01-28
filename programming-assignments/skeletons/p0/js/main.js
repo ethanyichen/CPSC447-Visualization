@@ -3,8 +3,12 @@
  */
 d3.csv('data/experiment_data.csv')
   .then(data => {
-    
-    // Todo: Preprocess data and show chart
-    
+    data.forEach(d => {
+      d.accuracy = +d.accuracy;
+    });
+    const scatterPlot = new Scatterplot({parentElement: '#vis'}, data);
+
+    scatterPlot.updateVis();
+
   })
   .catch(error => console.error(error));

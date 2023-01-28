@@ -1,3 +1,4 @@
 # P0: Experiment Data
 
-Todo: Cite any external resources and explain exactly what modifications you have made.
+Citation:
+Followed example structure https://codesandbox.io/s/github/UBC-InfoVis/2021-436V-examples/tree/master/d3-static-bar-chart

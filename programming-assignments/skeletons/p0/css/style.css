@@ -3,4 +3,10 @@ body {
   font-family: sans-serif;
 }
 
-/* Todo: add styles; */
+.dot {
+  fill: steelblue;
+}
+
+.x-axis {
+  opacity: 0.5;
+}
