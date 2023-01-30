@@ -105,8 +105,7 @@ class Scatterplot {
     updateVis() {
         let vis = this;
 
-        vis.accuracyData = (d) => d.accuracy;
-        vis.accuracyScale.domain(d3.extent(vis.data.map(vis.accuracyData)));
+        vis.accuracyScale.domain([Math.floor(d3.min(vis.data, (d) => d.accuracy)), Math.ceil(d3.max(vis.data, (d) => d.accuracy))]);
         // update y-axis ticks format and domain with updated trial data
         vis.trial = (d) => d.trial;
         vis.trials = vis.data.map(vis.trial).sort();
@@ -159,15 +158,13 @@ function meanAccuracyPerTrial(data) {
     // create an array with each trial's accuracy data
     data.forEach((d) => {
         let trial = parseInt(d.trial);
-        if (accuracy[trial] !== undefined) {
-            accuracy[trial].push(d.accuracy);
-        } else {
+        if (accuracy[trial] === undefined) {
             accuracy[trial] = [];
         }
+        accuracy[trial].push(d.accuracy);
     })
     let meanAccuracyPerTrial = [];
-    const avg = (accuracyOfTrial) => (accuracyOfTrial.reduce((acc, c) => acc + c, 0) / accuracyOfTrial.length);
-
+    const avg = (arr) => d3.mean(arr);
     // calculating mean accuracy per trial
     accuracy.forEach((a) => {
         if (a.length > 0) {
