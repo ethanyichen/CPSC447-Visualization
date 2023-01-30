@@ -3,10 +3,16 @@ body {
   font-family: sans-serif;
 }
 
-.dot {
+.point {
   fill: steelblue;
+  opacity:0.5;
 }
 
 .x-axis {
   opacity: 0.5;
+}
+
+.accuracyLabel {
+  font-weight: bold;
+  font-size: 13px;
 }
