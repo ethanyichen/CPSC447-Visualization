@@ -1,18 +1,18 @@
 body {
-  font-family: 'Noto Sans JP', sans-serif;
-  font-size: 13px;
-  padding: 30px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    padding: 30px;
 }
 
 .container {
-  width: 800px;
-  margin: 0 auto;
+    width: 800px;
+    margin: 0 auto;
 }
 
 .mark {
-  fill-opacity: 0.6;
-  stroke: #333;
-  stroke-width: 0.3;
+    fill-opacity: 0.6;
+    stroke: #333;
+    stroke-width: 0.3;
 }
 
 /*
@@ -20,26 +20,59 @@ body {
  */
 
 #winter-storm-freeze {
-  fill: 	#ccc;
+    fill: #ccc;
 }
 
 #drought-wildfire {
-  fill: 	#ffffd9;
+    fill: #ffffd9;
 }
 
 #flooding {
-  fill: 	#41b6c4;
+    fill: #41b6c4;
 }
 
 #tropical-cyclone {
-  fill: 	#081d58;
+    fill: #081d58;
 }
 
 #severe-storm {
-  fill: 	#c7e9b4;
+    fill: #c7e9b4;
 }
 
+
 .max-label {
-  font-size: 10px;
-  opacity: 0.8;
+    font-size: 10px;
+    opacity: 0.8;
+}
+
+.legend-mark {
+    stroke: black;
+}
+
+.legend-label {
+    fill: grey;
+}
+
+.legend-label.active {
+    fill: black;
+}
+
+/* Tooltip */
+#tooltip {
+    position: absolute;
+    display: none;
+    background: #fff;
+    box-shadow: 3px 3px 3px 0px rgb(92 92 92 / 0.5);
+    border: 1px solid #ddd;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 8px;
+    min-width: 160px;
+    color: #333;
+}
+
+.tooltip-title {
+    color: #000;
+    font-weight: 5;
+    font-size: 10px;
 }

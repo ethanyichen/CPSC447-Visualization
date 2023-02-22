@@ -15,11 +15,16 @@ class Timeline {
             leftPadding: 30,
             tooltipPadding: 15,
             maxLabelPadding: 9,
-            margin: {top: 120, right: 20, bottom: 20, left: 45},
-            legendWidth: 170,
-            legendHeight: 8,
-            legendRadius: 5
+            margin: {top: 200, right: 20, bottom: 20, left: 45},
+            legendMarginTop: 30,
+            legendLabelPaddingRight: 10,
+            legendLabelPaddingTop: 5,
+            legendWidth: 300,
+            legendHeight: 100,
+            legendRadius: 5,
+            legendCountEachRow: 2
         }
+        this._data = _data;
         this.data = _data;
         this.selectedCategories = [];
         this.initVis();
@@ -47,8 +52,21 @@ class Timeline {
             .domain(d3.extent(vis.data, d => d.cost))
             .range([4, 140]);
 
+        // generate array of all the categories given by the dataset
+        vis.disasterByCategory = d3.groups(vis.data, d => d.category);
+        vis.disasterCategories = vis.disasterByCategory.map(d => d[0]);
+
+        // scales for legend
+        vis.legendScaleHorizontal = d3.scaleLinear()
+            .domain([0, vis.config.legendCountEachRow])
+            .range([0, vis.config.legendWidth])
+        vis.legendScaleVertical = d3.scaleLinear()
+            .range([vis.config.legendHeight, 0])
+            .domain([0, Math.ceil(vis.disasterCategories.length / vis.config.legendCountEachRow) - 1]);
+
         // Initialize axes
         vis.xAxis = d3.axisTop(vis.xScale)
+            .ticks(d3.timeMonth, 1)
             .ticks(d3.timeMonth, 1)
             .tickFormat(d3.timeFormat("%b"));
 
@@ -77,6 +95,11 @@ class Timeline {
         vis.chartArea = vis.svg.append('g')
             .attr('transform', `translate(${vis.config.margin.left},${vis.config.margin.top})`);
 
+        // Append group that will hold the legend elements, place it on the appropriate position on svg
+        vis.legendGroup = vis.svg.append('g')
+            .attr('transform', `translate(${vis.config.margin.left},${vis.config.legendMarginTop})`)
+            .attr('class', 'legends-group')
+
         // Append x-axis group
         vis.xAxisG = vis.chartArea.append('g')
             .attr('class', 'axis x-axis')
@@ -101,10 +124,12 @@ class Timeline {
             .attr('clip-path', 'url(#chart-mask)');
 
         // Optional: other static elements
+        // date parser that takes a year (ex. 2017) and convert into Date (2017-01-01) for scale function input
         vis.parseYear = (year) => {
             return new Date(`${year}-01-01`)
         };
 
+        // date parser that takes a date and converts that date to format for scale function input
         vis.parseMonthToFitMonthScale = (date) => {
             let parsedDate = new Date(date)
             parsedDate.setFullYear(2012)
@@ -120,10 +145,15 @@ class Timeline {
     updateVis() {
         let vis = this;
 
-        //[{year1, [{disaster 1} {disaster 2}]}, {{year2, [{disaster 3} {disaster 4}}]
-        vis.disastersByYear = d3.groups(vis.data, d => d.year);
+
+        // generate map with key being the year and the values being an array of the disasters that happened that year
+        vis.disastersByYear = d3.rollup(vis.data, v => v, d => d.year);
+
+        // calculate the maximum cost of each year, key being year, value being the max cost of that year
         vis.maximumCostOfEachYear = d3.rollup(vis.data, v => d3.max(v, d => d.cost), d => d.year)
 
+
+        vis.renderLegend();
         vis.renderVis();
     }
 
@@ -142,39 +172,115 @@ class Timeline {
             .call(vis.yAxis.tickSizeOuter(0))
             .call(g => g.select('.domain').remove())
 
-        //render year/disasters groups
-        vis.yearGroups = vis.chart.selectAll('.row')
-            .data(vis.disastersByYear)
-            .join('g')
-            .attr('class', 'row')
-            .attr('transform', d => `translate(0,${vis.yScale(vis.parseYear(d[0]))})`)
-        vis.disasterGroups = vis.yearGroups.selectAll('.disaster-group')
-            .data(d => d[1])
-            .join('g')
-            .attr('class', 'disaster-group')
-            .attr('transform', d => `translate(${vis.xScale(vis.parseMonthToFitMonthScale(d.date))}, 0)`)
+        //render row groups
+        vis.row = vis.chart.selectAll('.disaster-row')
+            .data(vis.disastersByYear, d => d[0]);
 
-        vis.marks = vis.disasterGroups
-            .append('path')
-            .attr('class', 'mark')
-            .attr('id', d => d.category)
-            .attr('d', d => vis.arcGenerator(d.cost))
+        vis.rowEnter = vis.row.join('g')
+            .attr('class', 'disaster-row')
+            .attr('transform', d => `translate(0,${vis.yScale(vis.parseYear(d[0]))})`);
 
-        vis.maxLabels = vis.disasterGroups
-            .data(d => d[1].filter(v => v.cost === vis.maximumCostOfEachYear.get(d[0])))
-            .append('text')
-            .attr('class', 'max-label')
-            .attr('text-anchor', 'middle')
-            .attr('transform', d => `translate(0,${vis.config.maxLabelPadding})`)
-            .text(d => d.name);
+        //render each cell group and its associated mark and text
+        vis.disasterGroup = vis.row.merge(vis.rowEnter)
+            .selectAll('.disaster-group')
+            .data(d => d[1], d => d.category)
+            .join((enter) => {
+                let cell = enter;
+                let disasterGroup = cell
+                    .append('g')
+                    .attr('class', 'disaster-group')
+                    .attr('transform', d => `translate(${vis.xScale(vis.parseMonthToFitMonthScale(d.date))}, 0)`)
+                vis.marks = disasterGroup.append('path')
+                    .attr('class', 'mark')
+                    .attr('id', d => d.category)
+                    .attr('d', d => vis.arcGenerator(d.cost))
+                disasterGroup
+                    .append('text')
+                    .attr('class', 'max-label')
+                    .attr('text-anchor', 'middle')
+                    .attr('transform', `translate(0,${vis.config.maxLabelPadding})`)
+                    .text(d => d.name)
+                    .attr('fill', (d) => {
+                        if (d.cost !== vis.maximumCostOfEachYear.get(d.year)) {
+                            return "none";
+                        }
+                    });
+            })
 
+        // render tooltip when mousing hovering
+        vis.marks
+            .on('mouseover', (event, d) => {
+                d3.select('#tooltip')
+                    .style('display', 'block')
+                    .style('left', (event.pageX + vis.config.tooltipPadding) + 'px')
+                    .style('top', (event.pageY + vis.config.tooltipPadding) + 'px')
+                    .html(`
+              <div class="tooltip-title">${d.name}</div>
+              <div>${d.cost} billion</div>
+            `);
+            })
+            .on('mouseleave', () => {
+                d3.select('#tooltip').style('display', 'none');
+            })
 
     }
 
     renderLegend() {
         let vis = this;
 
-        // Todo: Display the disaster category legend that also serves as an interactive filter.
-        // You can add the legend also to `index.html` instead and have your event listener in `main.js`.
+        // generate legend cells for disaster categories each with circle and text description
+        vis.legendCell = vis.legendGroup
+            .selectAll('.legend-cell')
+            .data(vis.disasterCategories)
+            .join((enter) => {
+                let group = enter.append('g')
+                    .attr('class', 'legend-cell');
+
+                // xPosition and yPosition calculator based on given category legend index in the category list
+                let xValue = (d, i) => (vis.legendScaleHorizontal(i % vis.config.legendCountEachRow));
+                let yValue = (d, i) => (vis.legendScaleVertical(Math.ceil(i / vis.config.legendCountEachRow)));
+
+                // append legend circles with given radius
+                group.append('circle')
+                    .attr('class', 'legend-mark')
+                    .attr('id', d => d)
+                    .attr("r", vis.config.legendRadius + 'px')
+                    .attr("cx", (d, i) => xValue(d, i))
+                    .attr("cy", (d, i) => yValue(d, i));
+                // append legend labels for the legend, transform to the right of the legend circles with
+                // add listener to legend labels for filtering data based on selectedCategories
+                group.append('text')
+                    .attr('class', 'legend-label')
+                    .attr('text-anchor', 'right')
+                    .text(d => d)
+                    .attr("x", (d, i) => xValue(d, i))
+                    .attr("y", (d, i) => yValue(d, i))
+                    .attr('transform', `translate(${vis.config.legendLabelPaddingRight},${vis.config.legendLabelPaddingTop})`)
+                    .on('click', function (event, d) {
+                        const isActive = vis.selectedCategories.includes(d);
+                        // add the category if it was not previously selected, remove otherwise
+                        if (isActive) {
+                            vis.selectedCategories = vis.selectedCategories.filter(f => f !== d);
+                        } else {
+                            vis.selectedCategories.push(d);
+                        }
+                        vis.filterData(); // Call filterData function to update vis.data
+                        d3.select(this).classed('active', !isActive); // toggle active status
+                    });
+            })
+    }
+
+    // this function filters visualization data based on the state of array selectedCategories
+    // return unfiltered data when selectedCategories is empty
+    // otherwise, return filtered data with only the categories in selectedCategories
+    filterData() {
+        let vis = this;
+        if (vis.selectedCategories.length === 0) {
+            vis.data = vis._data;
+        } else {
+            vis.data = vis._data.filter(d => timeline.selectedCategories.includes(d.category));
+        }
+        vis.updateVis();
     }
 }
+
