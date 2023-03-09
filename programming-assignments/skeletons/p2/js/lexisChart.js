@@ -5,13 +5,15 @@ class LexisChart {
    * @param {Object}
    * @param {Array}
    */
-  constructor(_config) {
+  constructor(_config, _dispatcher, _data) {
     this.config = {
       parentElement: _config.parentElement,
       containerWidth: 1000,
       containerHeight: 380,
       margin: {top: 15, right: 15, bottom: 20, left: 25}
     }
+    this.dispatcher = _dispatcher;
+    this.data = _data;
     this.initVis();
   }
   
