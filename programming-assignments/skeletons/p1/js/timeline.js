@@ -181,7 +181,7 @@ class Timeline {
             .attr('transform', d => `translate(0,${vis.yScale(vis.parseYear(d[0]))})`);
 
         //render each cell group and its associated mark and text
-        vis.disasterGroup = vis.row.merge(vis.rowEnter)
+        vis.disasterGroup = vis.rowEnter
             .selectAll('.disaster-group')
             .data(d => d[1], d => d.category)
             .join((enter) => {

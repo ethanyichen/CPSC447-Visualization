@@ -4,9 +4,9 @@ class ScatterPlot {
     // Configuration object with defaults
     this.config = {
       parentElement: _config.parentElement,
-      containerWidth: _config.containerWidth || 260,
+      containerWidth: _config.containerWidth || 900,
       containerHeight: _config.containerHeight || 300,
-      margin: _config.margin || {top: 25, right: 20, bottom: 20, left: 40}
+      margin: _config.margin || {top: 30, right: 30, bottom: 50, left: 30}
     }
     this.dispatcher = _dispatcher;
     this.data = _data;
@@ -20,14 +20,18 @@ class ScatterPlot {
     vis.height = vis.config.containerHeight - vis.config.margin.top - vis.config.margin.bottom;
 
     // scales
-    vis.xScale = d3.scaleLinear().range([0, 100000])
-    vis.yScale = d3.scaleLinear().range([30, 90])
+    vis.xScale = d3.scaleLinear()
+        .domain([0, 100000])
+        .range([0, vis.width])
+    vis.yScale = d3.scaleLinear()
+        .domain([30, 90])
+        .range([vis.height, 0])
 
     //axes
     vis.xAxis = d3.axisBottom(vis.xScale)
         .ticks(6)
-        .tickSize(-vis.height - 10)
-        .tickPadding(10)
+        .tickSize(-vis.height - 20)
+        .tickPadding(15)
 
     vis.yAxis = d3.axisLeft(vis.yScale)
         .ticks(6)
@@ -46,7 +50,7 @@ class ScatterPlot {
     // Append empty x-axis group and move it to the bottom of the chart
     vis.xAxisG = vis.chart.append('g')
         .attr('class', 'axis x-axis')
-        .attr('transform', `translate(0,${vis.height})`);
+        .attr('transform', `translate(0,${vis.height + 10})`);
 
     // Append y-axis group
     vis.yAxisG = vis.chart.append('g')
@@ -55,9 +59,17 @@ class ScatterPlot {
     vis.svg.append('text')
         .attr('class', 'axis-title')
         .attr('x', 0)
-        .attr('y', 0)
+        .attr('y', 5)
         .attr('dy', '.71em')
         .text('Age');
+
+    vis.chart.append('text')
+        .attr('class', 'axis-title')
+        .attr('y', vis.height + 10)
+        .attr('x', vis.width + 10)
+        .attr('dy', '.71em')
+        .style('text-anchor', 'end')
+        .text('GDP per Capita (US$)');
   }
 
   updateVis() {
@@ -66,9 +78,6 @@ class ScatterPlot {
 
     vis.gdpValue = d => d.pcgdp;
     vis.startAgeValue = d => d.start_age;
-
-    vis.xScale.domain([0, d3.max(vis.data, vis.gdpValue)]);
-    vis.yScale.domain([0, d3.max(vis.data, vis.startAgeValue)]);
 
     vis.renderVis()
   }

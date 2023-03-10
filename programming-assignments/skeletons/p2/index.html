@@ -2,34 +2,40 @@
 <html>
 <head>
     <title>Political Leaders</title>
-    <link rel="icon" href="data:;base64,iVBORwOKGO=" />
+    <link rel="icon" href="data:;base64,iVBORwOKGO="/>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Castoro:ital@1&family=Noto+Sans+JP:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
-    <h1>Political Leaders</h1>
+<h1>Political Leaders</h1>
 
-    Filter Countries: 
-    <select id="country-selector">
-        <option value="oecd">OECD</option>
-        <option value="eu27">EU27</option>
-        <option value="brics">BRICS</option>
-        <option value="gseven">G7</option>
-        <option value="gtwenty">G20 (without EU)</option>
-    </select>
+Filter Countries:
+<select id="country-selector">
+    <option value="oecd">OECD</option>
+    <option value="eu27">EU27</option>
+    <option value="brics">BRICS</option>
+    <option value="gseven">G7</option>
+    <option value="gtwenty">G20 (without EU)</option>
+</select>
 
-    <div class = "container">
-        <div> <svg id="lexischart"></svg></div>
-        <div> <svg id="barchart"></svg></div>
-        <div> <svg id="scatterplot"></svg></div>
-        <div></div>
+<div class="container">
+    <div class = "row">
+        <div> <svg id="lexis-chart"></svg> </div>
     </div>
-    
-    <!-- todo: add visualizations -->
-    
-    <script src="js/d3.v6.min.js"></script>
-    <script src="js/lexisChart.js"></script>
-    <script src="js/barChart.js"></script>
-    <script src="js/scatterPlot.js"></script>
-    <script src="js/main.js"></script>
+    <div class = "row">
+        <div> <svg id="bar-chart"></svg> </div>
+        <div> <svg id="scatter-plot"></svg> </div>
+    </div>
+</div>
+
+<div id="tooltip"></div>
+
+
+<script src="js/d3.v6.min.js"></script>
+<script src="js/lexisChart.js"></script>
+<script src="js/barChart.js"></script>
+<script src="js/scatterPlot.js"></script>
+<script src="js/main.js"></script>
 </body>
 </html>
