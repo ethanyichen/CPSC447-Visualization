@@ -67,12 +67,24 @@ class BarChart {
   updateVis() {
     // Prepare data and scales
     let vis = this;
-
+    vis.sumofMaleAndFemalePoliticians = d3.group(vis.data, d => d.gender);
+    vis.sumofMaleAndFemalePoliticians.set('Male', vis.sumofMaleAndFemalePoliticians.get('Male').length);
+    vis.sumofMaleAndFemalePoliticians.set('Female', vis.sumofMaleAndFemalePoliticians.get('Female').length);
     vis.renderVis()
   }
 
   renderVis() {
     let vis = this;
+
+    vis.chart.selectAll('.bar')
+        .data(vis.sumofMaleAndFemalePoliticians)
+        .join('rect')
+        .attr('class', 'bar')
+        .attr('x', d => vis.xScale(d[0]))
+        .attr('width', vis.xScale.bandwidth())
+        .attr('height', d => vis.height - vis.yScale(d[1]))
+        .attr('y', d => vis.yScale(d[1]))
+
     // render axes
     vis.xAxisG
         .call(vis.xAxis)

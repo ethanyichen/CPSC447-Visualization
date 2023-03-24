@@ -10,12 +10,14 @@ class LexisChart {
             parentElement: _config.parentElement,
             containerWidth: 1000,
             containerHeight: 450,
-            tooltipPadding: 15,
+            mainColor: _config.mainColor,
             colorScale: _config.colorScale,
-            margin: {top: 35, right: 25, bottom: 85, left: 35}
+            margin: {top: 35, right: 25, bottom: 85, left: 35},
+            displayTooltip: _config.displayTooltip
         }
         this.dispatcher = _dispatcher;
         this.data = _data;
+        this.selectedLeaders = [];
         this.initVis();
     }
 
@@ -40,7 +42,7 @@ class LexisChart {
 
         // Create default arrow head
         // Can be applied to SVG lines using: `marker-end`
-        vis.chart.append('defs').append('marker')
+        vis.markerEnd = vis.chart.append('defs').append('marker')
             .attr('id', 'arrow-head')
             .attr('markerUnits', 'strokeWidth')
             .attr('refX', '2')
@@ -56,7 +58,7 @@ class LexisChart {
         // Create selected arrow head
         // Can be applied to SVG lines using: `marker-end-selected`
         vis.chart.append('defs').append('marker')
-            .attr('id', 'arrow-head')
+            .attr('id', 'arrow-head-selected')
             .attr('markerUnits', 'strokeWidth')
             .attr('refX', '2')
             .attr('refY', '2')
@@ -80,7 +82,7 @@ class LexisChart {
             .attr('orient', 'auto')
             .append('path')
             .attr('d', 'M0,0 L2,2 L 0,4')
-            .attr('stroke', '#50b7cc')
+            .attr('stroke', vis.config.mainColor)
             .attr('fill', 'none');
 
         vis.width = vis.config.containerWidth - vis.config.margin.left - vis.config.margin.right;
@@ -95,7 +97,7 @@ class LexisChart {
             .range([vis.height, 0])
 
         vis.highlightedArrowColorScale = d3.scaleOrdinal()
-            .range(['#ddd', '#50b7cc'])
+            .range(['#ddd', vis.config.mainColor])
             .domain(['0', '1']);
 
         vis.highlightedArrowStrokeScale = d3.scaleOrdinal()
@@ -103,7 +105,6 @@ class LexisChart {
             .domain(['0', '1']);
 
         vis.labelColorScale = d3.scaleOrdinal()
-            .range(['none', '#111'])
             .range(['none', '#111'])
             .domain(['0', '1']);
 
@@ -166,67 +167,57 @@ class LexisChart {
     renderVis() {
         let vis = this;
 
-        vis.chart.selectAll('.arrow-group')
-            .data(vis.data, d => d.gender, d => d.id)
-            .join((enter) => {
-                let groups = enter.append('g')
-                    .attr('class', 'arrow-group')
-                vis.arrows = groups.append('line')
-                    .attr('x1', d => vis.xScale(vis.startYear(d)))
-                    .attr('x2', d => vis.xScale(vis.endYear(d)))
-                    .attr('y1', d => vis.yScale(vis.startAge(d)))
-                    .attr('y2', d => vis.yScale(vis.endAge(d)))
-                    .attr('stroke', d => vis.highlightedArrowColorScale(vis.hasLabel(d)))
-                    .attr('stroke-width', d => vis.highlightedArrowStrokeScale(vis.hasLabel(d)))
-                    .attr('class', 'arrow')
-                    .attr('marker-end', d => `url(${vis.selectArrowHead(vis.hasLabel(d))})`)
-                vis.labels = groups.append('text')
-                    .text(d => d.leader)
-                    .attr('class', 'label')
-                    .attr('fill', d => vis.labelColorScale(vis.hasLabel(d)))
-                    .attr('transform', d => `translate(${vis.xScale(vis.startYear(d)) + 5},${vis.yScale(vis.startAge(d)) - 5}) rotate(-20)`);
+        vis.arrows = vis.chart.selectAll('.arrow')
+            .data(vis.data, d => d.leader)
+            .join('line')
+            .attr('x1', d => vis.xScale(vis.startYear(d)))
+            .attr('x2', d => vis.xScale(vis.endYear(d)))
+            .attr('y1', d => vis.yScale(vis.startAge(d)))
+            .attr('y2', d => vis.yScale(vis.endAge(d)))
+            .attr('stroke', d => vis.highlightedArrowColorScale(vis.hasLabel(d)))
+            .attr('stroke-width', d => vis.highlightedArrowStrokeScale(vis.hasLabel(d)))
+            .attr('class', 'arrow')
+            .classed('selected', d => vis.selectedLeaders.includes(d.leader))
+            .attr('marker-end', d => `url(${vis.selectArrowHeads(d)})`)
+            .on('click', function (event, d) {
+                    // Check if current category is active and toggle class
+                    const isSelected = d3.select(this).classed('selected');
+                    d3.select(this).classed('selected', !isSelected);
+                    // Get the names of all active/filtered categories
+                    vis.selectedLeaders = vis.chart.selectAll('.arrow.selected').data().map(d => d.leader);
+                    vis.arrows.attr('marker-end', d => `url(${vis.selectArrowHeads(d)})`)
+                    // Trigger filter event and pass array with the selected category names
+                    vis.dispatcher.call('filterLeadersScatterPlot', event, vis.selectedLeaders);
+                }
+            );
+        vis.labels = vis.chart.selectAll('.label')
+            .data(vis.data, d => d.leader)
+            .join('text')
+            .attr('x', 0)
+            .attr('y', 0)
+            .text(d => d.leader)
+            .attr('class', 'label')
+            .attr('fill', d => vis.labelColorScale(vis.hasLabel(d)))
+            .attr('transform', d => `translate(${vis.xScale(vis.startYear(d)) + 5},${vis.yScale(vis.startAge(d)) - 5}) rotate(-20)`);
 
-            })
 
         // render tooltip when mousing hovering
-        vis.arrows
-            .on('mouseover', (event, d) => {
-                d3.select('#tooltip')
-                    .style('display', 'block')
-                    .style('left', (event.pageX + vis.config.tooltipPadding) + 'px')
-                    .style('top', (event.pageY + vis.config.tooltipPadding) + 'px')
-                    .html(`
-              <div class="tooltip-title">${d.leader}</div>
-              <div><i>${d.country}, ${d.start_year} - ${d.end_year}</i></div>
-              <ul>
-                <li>Age at inauguration: ${d.start_age}</li>
-                <li>Time in office: ${d.duration}</li>
-                <li>GDP/capita ${d.pcgdp}</li>
-              </ul>
-            `);
-            })
-            .on('mouseleave', () => {
-                d3.select('#tooltip').style('display', 'none');
-            })
+        vis.config.displayTooltip(vis.arrows);
 
 
-        vis.xAxisG
-            .call(vis.xAxis)
-            .call(g => g.select('.domain').remove());
+        vis.xAxisG.call(vis.xAxis).call(g => g.select('.domain').remove());
 
-        vis.yAxisG
-            .call(vis.yAxis.tickSizeOuter(0))
-            .call(g => g.select('.domain').remove())
+        vis.yAxisG.call(vis.yAxis.tickSizeOuter(0)).call(g => g.select('.domain').remove())
     }
 
-    selectArrowHead(value) {
-        if(value == 'selected') {
-            return '#arrow-head-selected'
-        } else if(value == '1') {
-            return '#arrow-head-highlighted'
+    selectArrowHeads(d) {
+        let vis = this;
+        if (vis.selectedLeaders.includes(d.leader)) {
+            return "#arrow-head-selected";
+        } else if (vis.hasLabel(d) == 1) {
+            return "#arrow-head-highlighted";
         } else {
-            return '#arrow-head'
+            return "#arrow-head";
         }
     }
-
 }
